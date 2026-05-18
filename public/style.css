@@ -1,4 +1,4 @@
-/* public/style.css - v1.2.1 Completa */
+/* public/style.css - v1.3.0 Completa */
 * { 
     box-sizing: border-box; 
     margin: 0; 
@@ -10,17 +10,26 @@ body {
     background-color: #1a1a26; 
     color: white; 
     display: flex; 
-    flex-direction: column; /* Cambiado a columna para apilar el botón arriba */
+    flex-direction: column; 
     justify-content: center; 
     align-items: center; 
     min-height: 100vh; 
     padding: 20px; 
 }
 
-/* ESTILO DEL BOTÓN SALIR FUERA DEL CONTENEDOR */
+/* ENVOLTORIO FLEX GLOBAL */
+.interfaz-bloque {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    justify-content: center;
+    max-width: 750px;
+    width: 100%;
+}
+
 .link-volver { 
-    position: absolute; /* Flota de forma independiente */
-    top: 25px; /* Separación del techo del navegador */
+    position: absolute; 
+    top: 25px; 
     color: #8a8fbc; 
     font-size: 14px; 
     text-decoration: none; 
@@ -32,7 +41,7 @@ body {
     border: 1px solid #32324a;
 }
 .link-volver:hover { 
-    color: #ff5555; /* Cambia a rojo sutil al pasar el mouse indicando salida */
+    color: #ff5555; 
     background: rgba(255, 255, 255, 0.08);
     transform: scale(1.02);
 }
@@ -45,7 +54,7 @@ body {
     border-radius: 12px; 
     text-align: center; 
     box-shadow: 0 4px 20px rgba(0,0,0,0.4); 
-    margin-top: 50px; /* Le da espacio para que no choque con el botón de arriba */
+    margin-top: 50px; 
 }
 
 h1 { 
@@ -62,13 +71,8 @@ h1 {
     letter-spacing: 1px;
 }
 
-.pantalla { 
-    display: none; 
-}
-
-.pantalla.active { 
-    display: block; 
-}
+.pantalla { display: none; }
+.pantalla.active { display: block; }
 
 input { 
     width: 100%; 
@@ -106,7 +110,6 @@ button {
     margin-bottom: 15px; 
     list-style-type: none;
 }
-
 #lista-jugadores li {
     padding: 6px 0;
     border-bottom: 1px solid #242434;
@@ -129,31 +132,36 @@ canvas { background: white; border-radius: 8px; cursor: crosshair; margin: 10px 
 #ganador-titulo { font-size: 28px; color: #00ff66; margin-bottom: 15px; }
 .contenedor-adsense { margin-top: 20px; min-height: 50px; background: rgba(0,0,0,0.2); }
 
-/* BANNERS DINÁMICOS DE ESTADO Y ERRORES */
-.banner-notificacion {
-    background-color: #ffaa00;
-    color: #1a1a26;
-    padding: 10px;
-    border-radius: 6px;
-    font-weight: bold;
-    margin-bottom: 12px;
-    font-size: 14px;
-    animation: alert-slide 0.3s ease-out;
-}
-
-.banner-error {
-    background-color: #ff5555;
-    color: white;
-    padding: 10px;
-    border-radius: 6px;
-    font-weight: bold;
-    margin-bottom: 15px;
-    font-size: 14px;
-    border: 1px solid #ff3333;
-    animation: alert-slide 0.2s ease-out;
-} 
+.banner-notificacion { background-color: #ffaa00; color: #1a1a26; padding: 10px; border-radius: 6px; font-weight: bold; margin-bottom: 12px; font-size: 14px; animation: alert-slide 0.3s ease-out; }
+.banner-error { background-color: #ff5555; color: white; padding: 10px; border-radius: 6px; font-weight: bold; margin-bottom: 15px; font-size: 14px; border: 1px solid #ff3333; animation: alert-slide 0.2s ease-out; } 
 
 @keyframes alert-slide {
     from { transform: scale(0.9); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
 }
+
+/* --- NUEVO ESTILOS DINÁMICOS CHAT Y REVELACIONES --- */
+.oculto-chat { display: none !important; }
+.chat-lateral-bloque {
+    width: 280px;
+    height: 480px;
+    background: #242434;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    margin-top: 50px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #32324a;
+}
+.chat-header { background: #1a1a26; padding: 12px; font-weight: bold; text-align: center; color: #ffaa00; font-size: 14px; border-bottom: 1px solid #32324a; }
+#chat-mensajes { flex-grow: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 13px; text-align: left; }
+.msj-linea { line-wrap: break-word; word-break: break-all; }
+.chat-nombre-tag { font-weight: bold; color: #00d2ff; }
+.chat-nombre-tag.mio { color: #00ff66; }
+.chat-inputs { display: flex; border-top: 1px solid #32324a; background: #1a1a26; }
+.chat-inputs input { border: none; margin-bottom: 0; border-radius: 0; background: transparent; padding: 12px; text-align: left; font-size: 14px; flex-grow: 1; }
+.chat-inputs button { margin-bottom: 0; border-radius: 0; width: 50px; background: #ffaa00; color: #1a1a26; }
+
+.alerta-voto-pendientes { background: #32324a; padding: 8px; border-radius: 6px; font-size: 13px; margin-bottom: 10px; color: #cbd5e1; }
+.revelacion-palabra-box { background: #1a1a26; padding: 10px; border-radius: 6px; font-weight: bold; color: #ffaa00; font-size: 15px; margin-bottom: 15px; border: 1px dashed #ffaa00; }

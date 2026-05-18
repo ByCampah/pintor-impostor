@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>El Pintor Impostor - v1.2.1</title>
+    <title>El Pintor Impostor - v1.3.0</title>
     <link rel="stylesheet" href="style.css">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3597205269278004" crossorigin="anonymous"></script>
 </head>
@@ -11,59 +11,78 @@
 
     <a href="https://bycampah.github.io/menu-principal/" class="link-volver">🛑 Salir y volver al menú de Juegos</a>
 
-    <div class="contenedor-juego">
-        <h1>🎨 EL PINTOR IMPOSTOR</h1>
-        <div class="version-tag">v1.2.1</div>
+    <div class="interfaz-bloque">
+        
+        <div class="contenedor-juego">
+            <h1>🎨 EL PINTOR IMPOSTOR</h1>
+            <div class="version-tag">v1.3.0</div>
 
-        <div id="error-pantalla" class="banner-error" style="display:none;"></div>
+            <div id="error-pantalla" class="banner-error" style="display:none;"></div>
 
-        <div id="pantalla-inicio" class="pantalla active">
-            <input type="text" id="input-nombre" placeholder="Tu Nombre" maxlength="15">
-            <button id="btn-crear" class="btn-principal">Crear Sala</button>
-            <div class="separador">ó</div>
-            <input type="text" id="input-codigo" placeholder="Código" maxlength="4">
-            <button id="btn-unirse" class="btn-secundario">Unirse</button>
+            <div id="pantalla-inicio" class="pantalla active">
+                <input type="text" id="input-nombre" placeholder="Tu Nombre" maxlength="15">
+                <button id="btn-crear" class="btn-principal">Crear Sala</button>
+                <div class="separador">ó</div>
+                <input type="text" id="input-codigo" placeholder="Código" maxlength="4">
+                <button id="btn-unirse" class="btn-secundario">Unirse</button>
+            </div>
+
+            <div id="pantalla-lobby" class="pantalla">
+                <h3>Sala: <span id="codigo-display">----</span></h3>
+                <ul id="lista-jugadores"></ul>
+                <button id="btn-comenzar" class="btn-jugar" style="display:none;">Empezar Juego</button>
+            </div>
+
+            <div id="pantalla-juego" class="pantalla">
+                <div id="notificacion-ronda" class="banner-notificacion" style="display:none;"></div>
+                <div class="info-ronda">Ronda de Dibujo: <span id="ronda-num">1</span></div>
+                <div id="info-palabra" class="alerta-palabra">Cargando...</div>
+                <h4 id="indicador-turno">Turno de: ...</h4>
+                
+                <canvas id="pizarra" width="350" height="350"></canvas>
+                
+                <button id="btn-terminar-trazo" class="btn-principal" style="display:none;">Terminar mi trazo</button>
+            </div>
+
+            <div id="pantalla-votacion" class="pantalla">
+                <h2 id="titulo-votacion">🕵️‍♂️ ¿Quién es el Impostor?</h2>
+                <p id="sub-votacion" class="sub">Discutan y elijan a quién quieren echar de la sala:</p>
+                
+                <div id="contenedor-espera-voto" class="alerta-voto-pendientes">
+                    ⏳ Faltan votar: <span id="lista-faltan-votar">...</span>
+                </div>
+
+                <div id="lista-votacion" class="contenedor-votos"></div>
+                <p id="alerta-voto-espera" class="espera" style="display:none;">Esperando que voten los demás...</p>
+            </div>
+
+            <div id="pantalla-final" class="pantalla">
+                <h2 id="ganador-titulo">¡GANADORES!</h2>
+                <p id="ganador-detalle">Detalle del juego...</p>
+                <p id="palabra-revelada-final" class="revelacion-palabra-box"></p>
+                <button id="btn-reiniciar" class="btn-jugar">Volver a Jugar</button>
+            </div>
+
+            <div class="contenedor-adsense">
+                <ins class="adsbygoogle"
+                     style="display:block"
+                     data-ad-client="ca-pub-3597205269278004"
+                     data-ad-slot="1234567890"
+                     data-ad-format="auto"
+                     data-full-width-responsive="true"></ins>
+                <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+            </div>
         </div>
 
-        <div id="pantalla-lobby" class="pantalla">
-            <h3>Sala: <span id="codigo-display">----</span></h3>
-            <ul id="lista-jugadores"></ul>
-            <button id="btn-comenzar" class="btn-jugar" style="display:none;">Empezar Juego</button>
+        <div id="panel-lateral-chat" class="chat-lateral-bloque oculto-chat">
+            <div class="chat-header">💬 Chat de Sala</div>
+            <div id="chat-mensajes"></div>
+            <div class="chat-inputs">
+                <input type="text" id="input-chat" placeholder="Chatear acá..." maxlength="100">
+                <button id="btn-enviar-chat">➤</button>
+            </div>
         </div>
 
-        <div id="pantalla-juego" class="pantalla">
-            <div id="notificacion-ronda" class="banner-notificacion" style="display:none;"></div>
-            <div class="info-ronda">Ronda de Dibujo: <span id="ronda-num">1</span></div>
-            <div id="info-palabra" class="alerta-palabra">Cargando...</div>
-            <h4 id="indicador-turno">Turno de: ...</h4>
-            
-            <canvas id="pizarra" width="350" height="350"></canvas>
-            
-            <button id="btn-terminar-trazo" class="btn-principal" style="display:none;">Terminar mi trazo</button>
-        </div>
-
-        <div id="pantalla-votacion" class="pantalla">
-            <h2 id="titulo-votacion">🕵️‍♂️ ¿Quién es el Impostor?</h2>
-            <p id="sub-votacion" class="sub">Discutan y elijan a quién quieren echar de la sala:</p>
-            <div id="lista-votacion" class="contenedor-votos"></div>
-            <p id="alerta-voto-espera" class="espera" style="display:none;">Esperando que voten los demás...</p>
-        </div>
-
-        <div id="pantalla-final" class="pantalla">
-            <h2 id="ganador-titulo">¡GANADORES!</h2>
-            <p id="ganador-detalle">Detalle del juego...</p>
-            <button id="btn-reiniciar" class="btn-jugar">Volver a Jugar</button>
-        </div>
-
-        <div class="contenedor-adsense">
-            <ins class="adsbygoogle"
-                 style="display:block"
-                 data-ad-client="ca-pub-3597205269278004"
-                 data-ad-slot="1234567890"
-                 data-ad-format="auto"
-                 data-full-width-responsive="true"></ins>
-            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-        </div>
     </div>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>

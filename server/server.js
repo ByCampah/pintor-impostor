@@ -1,196 +1,233 @@
-// server/server.js
 const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
+const app = express();
+const http = require('http').createServer(app);
+const io = require('socket.io')(http);
+const fs = require('fs');
 const path = require('path');
 
-const app = express();
-const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: "*" } });
+app.use(express.static(path.join(__dirname, 'public')));
 
-app.use(express.static(path.join(__dirname, '../public')));
+let palabras = [];
+// Leer el archivo palabras.txt
+try {
+    const data = fs.readFileSync(path.join(__dirname, 'palabras.txt'), 'utf8');
+    palabras = data.split(/[\n,]+/).map(p => p.trim()).filter(p => p.length > 0);
+    console.log(`📌 Se cargaron ${palabras.length} palabras para el Pintor Impostor.`);
+} catch (err) {
+    console.log("⚠️ No se encontró palabras.txt, usando lista por defecto.");
+    palabras = ["Fútbol", "Computadora", "Perro", "Pizza", "Castillo", "Auto", "Mate", "Helado"];
+}
 
-const PALABRAS = ["Perro", "Gato", "Auto", "Mate", "Pelota de Fútbol", "Hamburguesa", "Helado", "Computadora", "Pizza", "Colectivo", "Asado", "Guitarra"];
-let salas = {};
+// Estructura adaptada para controlar múltiples salas por código
+let salas = {}; 
 
-function mezclarArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+function enviarEstado(codigoSala) {
+    const sala = salas[codigoSala];
+    if (!sala) return;
+
+    // Actualizar lista global de jugadores de la sala
+    io.to(codigoSala).emit('actualizarJugadores', Object.values(sala.jugadores));
+    
+    for (const id in sala.jugadores) {
+        let copiaEstado = { ...sala.estadoJuego };
+        
+        // Ocultar palabra al impostor si no es fase FINAL
+        if (id === sala.estadoJuego.impostorId && sala.estadoJuego.fase !== 'FINAL') {
+            copiaEstado.palabraActual = '¡SOS EL IMPOSTOR! No sabés qué se dibuja. ¡Camuflate!';
+        }
+        
+        // Calcular quiénes faltan votar dinámicamente
+        if (sala.estadoJuego.fase === 'VOTACION') {
+            copiaEstado.faltanVotar = Object.values(sala.jugadores)
+                .filter(j => !sala.estadoJuego.quienVoto.includes(j.id))
+                .map(j => j.nombre);
+        }
+
+        io.to(id).emit('estado-juego-adaptado', copiaEstado);
     }
-    return array;
 }
 
 io.on('connection', (socket) => {
+    console.log(`🔌 Conectado: ${socket.id}`);
 
-    // 1. Crear Sala
+    // Crear Sala
     socket.on('crearSala', (nombre) => {
-        let codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const codigo = Math.random().toString(30).substring(2, 6).toUpperCase();
         salas[codigo] = {
-            id: codigo,
-            jugadores: [{ id: socket.id, nombre, vivo: true, esImpostor: false, votosRecibidos: 0 }],
-            enJuego: false,
-            palabra: "",
-            ordenTurnos: [],
-            indiceTurnoActual: 0,
-            votosEmitidos: 0,
-            rondaActual: 1
+            jugadores: {},
+            estadoJuego: {
+                fase: 'LOBBY',
+                palabraActual: '',
+                impostorId: null,
+                turnoActualIdx: 0,
+                ordenTurnos: [],
+                ronda: 1,
+                votos: {}, 
+                quienVoto: [] 
+            }
         };
+        
         socket.join(codigo);
-        socket.emit('salaCreada', { codigo, jugadores: salas[codigo].jugadores });
+        socket.salaCodigo = codigo;
+        salas[codigo].jugadores[socket.id] = { id: socket.id, nombre: nombre };
+        
+        socket.emit('salaCreada', { codigo, jugadores: Object.values(salas[codigo].jugadores) });
     });
 
-    // 2. Unirse a Sala
+    // Unirse a Sala
     socket.on('unirseSala', ({ codigo, nombre }) => {
-        codigo = codigo.toUpperCase();
-        if (salas[codigo] && !salas[codigo].enJuego) {
-            salas[codigo].jugadores.push({ id: socket.id, nombre, vivo: true, esImpostor: false, votosRecibidos: 0 });
-            socket.join(codigo);
-            io.to(codigo).emit('actualizarJugadores', salas[codigo].jugadores);
-        } else {
-            socket.emit('errorConexion', 'Sala no encontrada o ya inició.');
+        const sala = salas[codigo];
+        if (!sala) return socket.emit('errorConexion', 'La sala no existe.');
+        if (sala.estadoJuego.fase !== 'LOBBY') return socket.emit('errorConexion', 'La partida ya empezó.');
+
+        socket.join(codigo);
+        socket.salaCodigo = codigo;
+        sala.jugadores[socket.id] = { id: socket.id, nombre: nombre };
+
+        io.to(codigo).emit('nuevo-mensaje-chat', { id: 'sistema', texto: `🐾 <strong>${nombre}</strong> se unió a la sala.` });
+        enviarEstado(codigo);
+    });
+
+    // --- LÓGICA DEL CHAT DE SALA ---
+    socket.on('enviar-mensaje-chat', (texto) => {
+        const codigo = socket.salaCodigo;
+        if (!codigo || !salas[codigo]) return;
+        const jugador = salas[codigo].jugadores[socket.id];
+        if (jugador) {
+            io.to(codigo).emit('nuevo-mensaje-chat', {
+                id: socket.id,
+                nombre: jugador.nombre,
+                texto: texto
+            });
         }
     });
 
-    // 3. Iniciar Partida
+    // Iniciar Partida
     socket.on('iniciarPartida', (codigo) => {
-        let sala = salas[codigo];
-        if (!sala || sala.jugadores.length < 3) return socket.emit('errorConexion', 'Se necesitan al menos 3 jugadores.');
+        const sala = salas[codigo];
+        if (!sala) return;
+        const ids = Object.keys(sala.jugadores);
+        if (ids.length < 3) return socket.emit('errorConexion', 'Se necesitan mínimo 3 jugadores.');
 
-        sala.enJuego = true;
-        sala.rondaActual = 1;
-        sala.palabra = PALABRAS[Math.floor(Math.random() * PALABRAS.length)];
+        sala.estadoJuego.fase = 'JUEGO';
+        sala.estadoJuego.votos = {};
+        sala.estadoJuego.quienVoto = [];
+        sala.estadoJuego.ronda = 1;
         
-        sala.jugadores.forEach(j => { j.vivo = true; j.esImpostor = false; j.votosRecibidos = 0; });
-        sala.votosEmitidos = 0;
+        sala.estadoJuego.palabraActual = palabras[Math.floor(Math.random() * palabras.length)];
+        sala.estadoJuego.impostorId = ids[Math.floor(Math.random() * ids.length)];
+        
+        // 2 rondas de dibujo por jugador
+        sala.estadoJuego.ordenTurnos = [...ids, ...ids]; 
+        sala.estadoJuego.turnoActualIdx = 0;
 
-        let indiceImpostor = Math.floor(Math.random() * sala.jugadores.length);
-        sala.jugadores[indiceImpostor].esImpostor = true;
-
-        sala.ordenTurnos = mezclarArray(sala.jugadores.map(j => j.id));
-        sala.indiceTurnoActual = 0;
-
-        sala.jugadores.forEach((jugador) => {
-            io.to(jugador.id).emit('tuRol', { palabra: jugador.esImpostor ? "???" : sala.palabra, esImpostor: jugador.esImpostor });
+        io.to(codigo).emit('limpiarPizarraCompleta');
+        
+        // Enviar roles iniciales de forma privada
+        ids.forEach(id => {
+            const esImpostor = (id === sala.estadoJuego.impostorId);
+            io.to(id).emit('tuRol', { palabra: sala.estadoJuego.palabraActual, esImpostor });
         });
 
-        let idTurno = sala.ordenTurnos[sala.indiceTurnoActual];
-        let nombreTurno = sala.jugadores.find(j => j.id === idTurno).nombre;
-
-        io.to(codigo).emit('partidaIniciada', { 
-            turnoDe: idTurno, 
-            nombreTurno: nombreTurno,
-            ronda: sala.rondaActual 
+        io.to(codigo).emit('partidaIniciada', {
+            turnoDe: sala.estadoJuego.ordenTurnos[0],
+            nombreTurno: sala.jugadores[sala.estadoJuego.ordenTurnos[0]].nombre,
+            ronda: 1
         });
+        
+        enviarEstado(codigo);
     });
 
-    // 4. Transmisión del dibujo
+    // Dibujo en tiempo real
     socket.on('dibujando', ({ codigo, x, y, xAnterior, yAnterior, color }) => {
         socket.to(codigo).emit('dibujarFronte', { x, y, xAnterior, yAnterior, color });
     });
 
-    // 5. Cambios de turno
+    // Cambios de turno
     socket.on('siguienteTurno', (codigo) => {
-        let sala = salas[codigo];
+        const sala = salas[codigo];
         if (!sala) return;
-
-        sala.indiceTurnoActual++;
-
-        let encontrado = false;
-        while (sala.indiceTurnoActual < sala.ordenTurnos.length) {
-            let siguienteId = sala.ordenTurnos[sala.indiceTurnoActual];
-            let jug = sala.jugadores.find(j => j.id === siguienteId);
-            if (jug && jug.vivo) {
-                encontrado = true;
-                break;
-            }
-            sala.indiceTurnoActual++;
-        }
-
-        if (!encontrado) {
-            sala.votosEmitidos = 0;
-            sala.jugadores.forEach(j => j.votosRecibidos = 0);
-            let vivos = sala.jugadores.filter(j => j.vivo);
-            io.to(codigo).emit('faseVotacion', { jugadoresVivos: vivos, esDesempate: false });
-        } else {
-            let idTurno = sala.ordenTurnos[sala.indiceTurnoActual];
-            let nombreTurno = sala.jugadores.find(j => j.id === idTurno).nombre;
-            io.to(codigo).emit('cambioTurno', { turnoDe: idTurno, nombreTurno });
-        }
-    });
-
-    // 6. Procesamiento de Votos Seguro (Los muertos NO votan)
-    socket.on('votarJugador', ({ codigo, idVotado }) => {
-        let sala = salas[codigo];
-        if (!sala) return;
-
-        // FILTRO DE SEGURIDAD NUEVO: Buscamos al jugador que emite el voto
-        let votante = sala.jugadores.find(j => j.id === socket.id);
-        // Si el votante está muerto (vivo === false), ignoramos el evento por completo
-        if (!votante || !votante.vivo) return;
-
-        let jugadorVotado = sala.jugadores.find(j => j.id === idVotado);
-        if (jugadorVotado) jugadorVotado.votosRecibidos++;
         
-        sala.votosEmitidos++;
-        let totalVivos = sala.jugadores.filter(j => j.vivo).length;
+        sala.estadoJuego.turnoActualIdx++;
+        const totalTurnos = sala.estadoJuego.ordenTurnos.length;
 
-        // Esperamos solo la cantidad de votos equivalente a los jugadores VIVOS
-        if (sala.votosEmitidos >= totalVivos) {
-            let vivos = sala.jugadores.filter(j => j.vivo);
-            let maxVotos = Math.max(...vivos.map(j => j.votosRecibidos));
-            let empatados = vivos.filter(j => j.votosRecibidos === maxVotos);
+        if (sala.estadoJuego.turnoActualIdx < totalTurnos) {
+            // Controlar si pasamos a la segunda ronda intermedia
+            if (sala.estadoJuego.turnoActualIdx === Math.floor(totalTurnos / 2)) {
+                sala.estadoJuego.ronda = 2;
+            }
+            
+            const sigId = sala.estadoJuego.ordenTurnos[sala.estadoJuego.turnoActualIdx];
+            io.to(codigo).emit('cambioTurno', {
+                turnoDe: sigId,
+                nombreTurno: sala.jugadores[sigId].nombre,
+                ronda: sala.estadoJuego.ronda
+            });
+        } else {
+            // Pasamos a votación
+            sala.estadoJuego.fase = 'VOTACION';
+            const vivos = Object.values(sala.jugadores);
+            io.to(codigo).emit('faseVotacion', { jugadoresVivos: vivos, esDesempate: false });
+        }
+        enviarEstado(codigo);
+    });
 
-            if (empatados.length > 1) {
-                sala.votosEmitidos = 0;
-                sala.jugadores.forEach(j => j.votosRecibidos = 0);
-                io.to(codigo).emit('faseVotacion', { jugadoresVivos: empatados, esDesempate: true });
-                return;
+    // Votación inteligente
+    socket.on('votarJugador', ({ codigo, idVotado }) => {
+        const sala = salas[codigo];
+        if (!sala || sala.estadoJuego.fase !== 'VOTACION') return;
+        if (sala.estadoJuego.quienVoto.includes(socket.id)) return;
+
+        sala.estadoJuego.quienVoto.push(socket.id);
+        sala.estadoJuego.votos[idVotado] = (sala.estadoJuego.votos[idVotado] || 0) + 1;
+
+        if (sala.estadoJuego.quienVoto.length === Object.keys(sala.jugadores).length) {
+            sala.estadoJuego.fase = 'FINAL';
+            
+            let maxVotos = -1;
+            let masVotadoId = null;
+            for (const id in sala.estadoJuego.votos) {
+                if (sala.estadoJuego.votos[id] > maxVotos) {
+                    maxVotos = sala.estadoJuego.votos[id];
+                    masVotadoId = id;
+                }
             }
 
-            let expulsado = empatados[0];
-            expulsado.vivo = false;
+            const ganoPintores = (masVotadoId === sala.estadoJuego.impostorId);
+            const nombreImpostor = sala.jugadores[sala.estadoJuego.impostorId].nombre;
+            
+            let detalleStr = ganoPintores 
+                ? `¡Descubrieron a ${nombreImpostor}! El lienzo se salvó.`
+                : `Echaron a la persona equivocada. El impostor real era ${nombreImpostor}.`;
 
-            let impostorVivo = sala.jugadores.find(j => j.esImpostor).vivo;
-            let cantidadVivos = sala.jugadores.filter(j => j.vivo).length;
-
-            if (!impostorVivo) {
-                io.to(codigo).emit('finPartida', { ganador: "INOCENTES", detalle: `¡Echaron a ${expulsado.nombre} y era el Impostor!` });
-                sala.enJuego = false;
-            } else if (cantidadVivos <= 2) {
-                let nombreImpostor = sala.jugadores.find(j => j.esImpostor).nombre;
-                io.to(codigo).emit('finPartida', { ganador: "IMPOSTOR", detalle: `El impostor era ${nombreImpostor}. ¡Logró camuflarse!` });
-                sala.enJuego = false;
-            } else {
-                sala.rondaActual++;
-                sala.ordenTurnos = mezclarArray(sala.jugadores.filter(j => j.vivo).map(j => j.id));
-                sala.indiceTurnoActual = 0;
-                
-                let idTurno = sala.ordenTurnos[0];
-                let nombreTurno = sala.jugadores.find(j => j.id === idTurno).nombre;
-
-                io.to(codigo).emit('nuevaRondaDibujo', {
-                    ronda: sala.rondaActual,
-                    turnoDe: idTurno,
-                    nombreTurno: nombreTurno,
-                    mensajeEstado: `¡Expulsaron a ${expulsado.nombre}! No era el impostor.`
-                });
-            }
+            io.to(codigo).emit('finPartida', {
+                ganador: ganoPintores ? "PINTORES" : "IMPOSTOR",
+                detalle: detalleStr,
+                palabraRevelada: sala.estadoJuego.palabraActual // ENVIAMOS LA PALABRA AQUÍ
+            });
+        } else {
+            enviarEstado(codigo);
         }
     });
 
-    // Desconexión
     socket.on('disconnect', () => {
-        for (let codigo in salas) {
-            salas[codigo].jugadores = salas[codigo].jugadores.filter(j => j.id !== socket.id);
-            if (salas[codigo].jugadores.length === 0) {
+        console.log(`❌ Desconectado: ${socket.id}`);
+        const codigo = socket.salaCodigo;
+        if (codigo && salas[codigo]) {
+            const jugador = salas[codigo].jugadores[socket.id];
+            if (jugador) {
+                io.to(codigo).emit('nuevo-mensaje-chat', { id: 'sistema', texto: `❌ <strong>${jugador.nombre}</strong> abandonó la sala.` });
+                delete salas[codigo].jugadores[socket.id];
+            }
+            if (Object.keys(salas[codigo].jugadores).length === 0) {
                 delete salas[codigo];
+                console.log(`🏠 Sala ${codigo} vaciada y removida.`);
             } else {
-                io.to(codigo).emit('actualizarJugadores', salas[codigo].jugadores);
+                enviarEstado(codigo);
             }
         }
     });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Servidor de Pintura Avanzado en puerto ${PORT}`));
+http.listen(PORT, () => console.log(`🎮 Servidor corriendo en puerto ${PORT}`));

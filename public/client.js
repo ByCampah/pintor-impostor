@@ -1,4 +1,3 @@
-// public/client.js
 const socket = io(window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin);
 
 let miCodigo = "";
@@ -9,6 +8,14 @@ const canvas = document.getElementById('pizarra');
 const ctx = canvas.getContext('2d');
 let dibujando = false;
 let xAnterior = 0, yAnterior = 0;
+
+// Elementos de la interfaz chat
+const panelLateralChat = document.getElementById('panel-lateral-chat');
+const inputChat = document.getElementById('input-chat');
+const btnEnviarChat = document.getElementById('btn-enviar-chat');
+const chatMensajes = document.getElementById('chat-mensajes');
+const listaFaltanVotar = document.getElementById('lista-faltan-votar');
+const palabraReveladaFinal = document.getElementById('palabra-revelada-final');
 
 canvas.addEventListener('mousedown', (e) => { if(!miTurno) return; dibujando = true; [xAnterior, yAnterior] = obtenerCoordenadas(e); });
 canvas.addEventListener('mousemove', dibujar);
@@ -36,6 +43,7 @@ function dibujarLinea(x, y, xAn, yAn, color) {
 }
 
 socket.on('dibujarFronte', ({ x, y, xAnterior, yAnterior, color }) => { dibujarLinea(x, y, xAnterior, yAnterior, color); });
+socket.on('limpiarPizarraCompleta', () => { ctx.clearRect(0, 0, canvas.width, canvas.height); });
 
 const pantallas = {
     inicio: document.getElementById('pantalla-inicio'),
@@ -48,7 +56,38 @@ const pantallas = {
 function mostrarSola(pantallaClave) {
     Object.keys(pantallas).forEach(key => pantallas[key].classList.remove('active'));
     pantallas[pantallaClave].classList.add('active');
+    
+    // El chat se muestra siempre excepto en la pantalla de inicio
+    if (pantallaClave === 'inicio') {
+        panelLateralChat.classList.add('oculto-chat');
+    } else {
+        panelLateralChat.classList.remove('oculto-chat');
+    }
 }
+
+// --- ACCIONES CHAT ---
+btnEnviarChat.addEventListener('click', () => {
+    const texto = inputChat.value.trim();
+    if (texto) {
+        socket.emit('enviar-mensaje-chat', texto);
+        inputChat.value = '';
+    }
+});
+inputChat.addEventListener('keypress', (e) => { if (e.key === 'Enter') btnEnviarChat.click(); });
+
+socket.on('nuevo-mensaje-chat', (datos) => {
+    const div = document.createElement('div');
+    div.classList.add('msj-linea');
+    if (datos.id === 'sistema') {
+        div.style.color = '#ffaa00';
+        div.innerHTML = datos.texto;
+    } else {
+        const esMio = datos.id === socket.id ? 'mio' : '';
+        div.innerHTML = `<span class="chat-nombre-tag ${esMio}">${datos.nombre}:</span> ${datos.texto}`;
+    }
+    chatMensajes.appendChild(div);
+    chatMensajes.scrollTop = chatMensajes.scrollHeight;
+});
 
 document.getElementById('btn-crear').addEventListener('click', () => {
     const n = document.getElementById('input-nombre').value.trim();
@@ -106,7 +145,10 @@ socket.on('partidaIniciada', ({ turnoDe, nombreTurno, ronda }) => {
     manejarTurno(turnoDe, nombreTurno);
 });
 
-socket.on('cambioTurno', ({ turnoDe, nombreTurno }) => { manejarTurno(turnoDe, nombreTurno); });
+socket.on('cambioTurno', ({ turnoDe, nombreTurno, ronda }) => { 
+    document.getElementById('ronda-num').innerText = ronda;
+    manejarTurno(turnoDe, nombreTurno); 
+});
 
 function manejarTurno(turnoDe, nombreTurno) {
     miTurno = (turnoDe === socket.id);
@@ -114,7 +156,13 @@ function manejarTurno(turnoDe, nombreTurno) {
     document.getElementById('btn-terminar-trazo').style.display = miTurno ? 'block' : 'none';
 }
 
-// Fase de Votación Inteligente: Oculta botones a los espectando
+// Escuchar actualizaciones de la votación y el tracker de pendientes
+socket.on('estado-juego-adaptado', (estado) => {
+    if (estado.fase === 'VOTACION' && estado.faltanVotar) {
+        listaFaltanVotar.innerText = estado.faltanVotar.join(', ');
+    }
+});
+
 socket.on('faseVotacion', ({ jugadoresVivos, esDesempate }) => {
     miTurno = false;
     document.getElementById('alerta-voto-espera').style.display = 'none';
@@ -124,7 +172,6 @@ socket.on('faseVotacion', ({ jugadoresVivos, esDesempate }) => {
     const contenedor = document.getElementById('lista-votacion');
     contenedor.innerHTML = "";
 
-    // Revisar si el cliente local está vivo dentro de la lista que mandó el servidor
     const yoSigoVivo = jugadoresVivos.some(j => j.id === socket.id);
 
     if (esDesempate) {
@@ -137,14 +184,12 @@ socket.on('faseVotacion', ({ jugadoresVivos, esDesempate }) => {
         sub.innerText = "Discutan y elijan a quién quieren echar de la sala:";
     }
 
-    // SI EL JUGADOR ACTUAL ESTÁ MUERTO: No le generamos botones, solo cartel de espectador
     if (!yoSigoVivo && !esDesempate) {
         sub.innerText = "💀 Fuiste expulsado. Ahora estás en modo ESPECTADOR hasta que termine la partida.";
         sub.style.color = "#ff5555";
         return; 
     }
 
-    // SI ESTÁ VIVO: Genera los botones normalmente (ocultando el suyo propio)
     jugadoresVivos.forEach(j => {
         if (j.id !== socket.id) {
             const btn = document.createElement('button');
@@ -170,10 +215,14 @@ socket.on('nuevaRondaDibujo', ({ ronda, turnoDe, nombreTurno, mensajeEstado }) =
     manejarTurno(turnoDe, nombreTurno);
 });
 
-socket.on('finPartida', ({ ganador, detalle }) => {
+socket.on('finPartida', ({ ganador, detalle, palabraRevelada }) => {
     document.getElementById('ganador-titulo').innerText = `¡GANAN LOS ${ganador}!`;
     document.getElementById('ganador-titulo').style.color = (ganador === "IMPOSTOR") ? "#ff5555" : "#00ff66";
     document.getElementById('ganador-detalle').innerText = detalle;
+    
+    // MOSTRAR LA REVELACIÓN DE LA PALABRA SECRETA
+    palabraReveladaFinal.innerHTML = `La palabra secreta era: <span style="color:#ffaa00; text-decoration: underline;">${palabraRevelada}</span>`;
+    
     mostrarSola('final');
 });
 

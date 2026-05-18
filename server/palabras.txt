@@ -1,0 +1,10 @@
+Automóvil, Avión, Bicicleta, Barco, Tren, Helicóptero, Submarino, Cohete, Moto, Camión
+Guitarra, Piano, Batería, Violín, Trompeta, Flauta, Micrófono, Auriculares, Consola, Teclado
+Perro, Gato, Elefante, Jirafa, León, Tigre, Oso, Delfín, Tiburón, Águila
+Manzana, Banana, Hamburguesa, Pizza, Helado, Chocolate, Café, Mate, Sushi, Asado
+Fútbol, Básquet, Tenis, Boxeo, Ajedrez, Skate, Natación, Patín, Hockey, Pádel
+Computadora, Celular, Televisor, Reloj, Cámara, Lámpara, Ventilador, Heladera, Microondas, Licuadora
+Casa, Castillo, Faro, Pirámide, Puente, Iglesia, Rascacielos, Carpa, Molino, Cabaña
+Espada, Escudo, Corona, Capa, Varita, Poción, Dragón, Cofre, Fantasma, Momia
+Mate, Termo, Alfajor, Chimichurri, Obelisco, Tango, Milanesa, Empanada, Fernet, Dulce de Leche
+Sol, Luna, Estrella, Nube, Lluvia, Rayo, Nieve, Fuego, Montaña, Isla
