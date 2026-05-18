@@ -100,7 +100,7 @@ socket.on('tuRol', ({ palabra, esImpostor }) => {
 
 socket.on('partidaIniciada', ({ turnoDe, nombreTurno, ronda }) => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    document.getElementById('notificacion-ronda').style.display = 'none'; // Limpiar banner anterior
+    document.getElementById('notificacion-ronda').style.display = 'none';
     document.getElementById('ronda-num').innerText = ronda;
     mostrarSola('juego');
     manejarTurno(turnoDe, nombreTurno);
@@ -114,7 +114,6 @@ function manejarTurno(turnoDe, nombreTurno) {
     document.getElementById('btn-terminar-trazo').style.display = miTurno ? 'block' : 'none';
 }
 
-// Fase de Votación Dinámica (Con filtro de autovoto y textos de desempate)
 socket.on('faseVotacion', ({ jugadoresVivos, esDesempate }) => {
     miTurno = false;
     document.getElementById('alerta-voto-espera').style.display = 'none';
@@ -127,7 +126,7 @@ socket.on('faseVotacion', ({ jugadoresVivos, esDesempate }) => {
     if (esDesempate) {
         titulo.innerText = "⚡ RONDA DE DESEMPATE";
         titulo.style.color = "#ffaa00";
-        sub.innerText = "Hubo un empate exacto. Elijan SOLO entre los más votados para definir quién se va:";
+        sub.innerText = "Hubo un empate exacto. Voten SOLO entre los apuntados:";
     } else {
         titulo.innerText = "🕵️‍♂️ ¿Quién es el Impostor?";
         titulo.style.color = "white";
@@ -135,7 +134,7 @@ socket.on('faseVotacion', ({ jugadoresVivos, esDesempate }) => {
     }
 
     jugadoresVivos.forEach(j => {
-        // FILTRO CLAVE: Si el ID es el mío, no muestro mi propio botón para no auto-votarme
+        // FILTRO ESTRICTO: No renderiza el botón si coincide con el cliente actual
         if (j.id !== socket.id) {
             const btn = document.createElement('button');
             btn.className = "btn-votar";
@@ -151,15 +150,11 @@ socket.on('faseVotacion', ({ jugadoresVivos, esDesempate }) => {
     mostrarSola('votacion');
 });
 
-// Volver al juego usando notificaciones embebidas
 socket.on('nuevaRondaDibujo', ({ ronda, turnoDe, nombreTurno, mensajeEstado }) => {
     document.getElementById('ronda-num').innerText = ronda;
-    
-    // Inyectar el mensaje directo en la pantalla de juego de todos
-    const banner = document.getElementById('notificacion-notificacion' || 'notificacion-ronda');
+    const banner = document.getElementById('notificacion-ronda');
     banner.innerText = mensajeEstado;
     banner.style.display = 'block';
-    
     mostrarSola('juego');
     manejarTurno(turnoDe, nombreTurno);
 });
@@ -171,4 +166,11 @@ socket.on('finPartida', ({ ganador, detalle }) => {
     mostrarSola('final');
 });
 
-socket.on('errorConexion', (m) => alert(m));
+// INTERCEPCIÓN DE ERRORES LIMPIA
+socket.on('errorConexion', (m) => {
+    const errorDiv = document.getElementById('error-pantalla');
+    errorDiv.innerText = "⚠️ " + m;
+    errorDiv.style.display = 'block';
+    // Ocultar automáticamente el error después de 4 segundos
+    setTimeout(() => { errorDiv.style.display = 'none'; }, 4000);
+});

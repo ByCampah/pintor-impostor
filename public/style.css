@@ -12,3 +12,23 @@
     from { transform: scale(0.9); opacity: 0; }
     to { transform: scale(1); opacity: 1; }
 }
+
+.version-tag {
+    font-size: 11px;
+    color: #6272a4;
+    margin-top: -10px;
+    margin-bottom: 15px;
+    font-weight: bold;
+    letter-spacing: 1px;
+}
+.banner-error {
+    background-color: #ff5555;
+    color: white;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    font-size: 14px;
+    border: 1px solid #ff3333;
+    animation: alert-slide 0.2s ease-out;
+}
