@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Pintor Impostor</title>
+    <link rel="stylesheet" href="style.css">
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3597205269278004" crossorigin="anonymous"></script>
+</head>
+<body>
+
+    <div class="contenedor-juego">
+        <h1>🎨 EL PINTOR IMPOSTOR</h1>
+
+        <div id="pantalla-inicio" class="pantalla active">
+            <input type="text" id="input-nombre" placeholder="Tu Nombre">
+            <button id="btn-crear" class="btn-principal">Crear Sala</button>
+            <div class="separador">ó</div>
+            <input type="text" id="input-codigo" placeholder="Código">
+            <button id="btn-unirse" class="btn-secundario">Unirse</button>
+        </div>
+
+        <div id="pantalla-lobby" class="pantalla">
+            <h3>Sala: <span id="codigo-display">----</span></h3>
+            <ul id="lista-jugadores"></ul>
+            <button id="btn-comenzar" class="btn-jugar" style="display:none;">Empezar Juego</button>
+        </div>
+
+        <div id="pantalla-juego" class="pantalla">
+            <div id="info-palabra" class="alerta-palabra">Cargando...</div>
+            <h4 id="indicador-turno">Turno de: ...</h4>
+            
+            <canvas id="pizarra" width="350" height="350"></canvas>
+            
+            <button id="btn-terminar-trazo" class="btn-principal" style="display:none;">Terminar mi trazo</button>
+        </div>
+
+        <div class="contenedor-adsense">
+            <ins class="adsbygoogle"
+                 style="display:block"
+                 data-ad-client="ca-pub-3597205269278004"
+                 data-ad-slot="1234567890"
+                 data-ad-format="auto"
+                 data-full-width-responsive="true"></ins>
+            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="client.js"></script>
+</body>
+</html>
