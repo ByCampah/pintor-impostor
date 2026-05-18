@@ -114,6 +114,7 @@ function manejarTurno(turnoDe, nombreTurno) {
     document.getElementById('btn-terminar-trazo').style.display = miTurno ? 'block' : 'none';
 }
 
+// Fase de Votación Inteligente: Oculta botones a los espectando
 socket.on('faseVotacion', ({ jugadoresVivos, esDesempate }) => {
     miTurno = false;
     document.getElementById('alerta-voto-espera').style.display = 'none';
@@ -122,6 +123,9 @@ socket.on('faseVotacion', ({ jugadoresVivos, esDesempate }) => {
     const sub = document.getElementById('sub-votacion');
     const contenedor = document.getElementById('lista-votacion');
     contenedor.innerHTML = "";
+
+    // Revisar si el cliente local está vivo dentro de la lista que mandó el servidor
+    const yoSigoVivo = jugadoresVivos.some(j => j.id === socket.id);
 
     if (esDesempate) {
         titulo.innerText = "⚡ RONDA DE DESEMPATE";
@@ -133,8 +137,15 @@ socket.on('faseVotacion', ({ jugadoresVivos, esDesempate }) => {
         sub.innerText = "Discutan y elijan a quién quieren echar de la sala:";
     }
 
+    // SI EL JUGADOR ACTUAL ESTÁ MUERTO: No le generamos botones, solo cartel de espectador
+    if (!yoSigoVivo && !esDesempate) {
+        sub.innerText = "💀 Fuiste expulsado. Ahora estás en modo ESPECTADOR hasta que termine la partida.";
+        sub.style.color = "#ff5555";
+        return; 
+    }
+
+    // SI ESTÁ VIVO: Genera los botones normalmente (ocultando el suyo propio)
     jugadoresVivos.forEach(j => {
-        // FILTRO ESTRICTO: No renderiza el botón si coincide con el cliente actual
         if (j.id !== socket.id) {
             const btn = document.createElement('button');
             btn.className = "btn-votar";
@@ -166,11 +177,9 @@ socket.on('finPartida', ({ ganador, detalle }) => {
     mostrarSola('final');
 });
 
-// INTERCEPCIÓN DE ERRORES LIMPIA
 socket.on('errorConexion', (m) => {
     const errorDiv = document.getElementById('error-pantalla');
     errorDiv.innerText = "⚠️ " + m;
     errorDiv.style.display = 'block';
-    // Ocultar automáticamente el error después de 4 segundos
     setTimeout(() => { errorDiv.style.display = 'none'; }, 4000);
 });
