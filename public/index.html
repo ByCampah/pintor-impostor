@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>El Pintor Impostor - Juego de Engaño</title>
+    <title>El Pintor Impostor - Rondas Pro</title>
     <link rel="stylesheet" href="style.css">
-    
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3597205269278004"
-     crossorigin="anonymous"></script>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3597205269278004" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -29,12 +27,26 @@
         </div>
 
         <div id="pantalla-juego" class="pantalla">
+            <div class="info-ronda">Ronda: <span id="ronda-num">1</span></div>
             <div id="info-palabra" class="alerta-palabra">Cargando...</div>
             <h4 id="indicador-turno">Turno de: ...</h4>
             
             <canvas id="pizarra" width="350" height="350"></canvas>
             
             <button id="btn-terminar-trazo" class="btn-principal" style="display:none;">Terminar mi trazo</button>
+        </div>
+
+        <div id="pantalla-votacion" class="pantalla">
+            <h2>🕵️‍♂️ ¿Quién es el Impostor?</h2>
+            <p class="sub">Discutan y elijan a quién quieren echar de la sala:</p>
+            <div id="lista-votacion" class="contenedor-votos"></div>
+            <p id="alerta-voto-espera" class="espera" style="display:none;">Esperando que voten los demás...</p>
+        </div>
+
+        <div id="pantalla-final" class="pantalla">
+            <h2 id="ganador-titulo">¡GANADORES!</h2>
+            <p id="ganador-detalle">Detalle del juego...</p>
+            <button id="btn-reiniciar" class="btn-jugar">Volver a Jugar</button>
         </div>
 
         <div class="contenedor-adsense">
@@ -44,9 +56,7 @@
                  data-ad-slot="1234567890"
                  data-ad-format="auto"
                  data-full-width-responsive="true"></ins>
-            <script>
-                 (adsbygoogle = window.adsbygoogle || []).push({});
-            </script>
+            <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
         </div>
     </div>
 

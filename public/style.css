@@ -11,6 +11,12 @@ button { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size
 .btn-jugar { background: #00ff66; color: #1a1a26; }
 .separador { margin: 10px 0; color: #888; }
 #lista-jugadores { background: #1a1a26; padding: 10px; border-radius: 6px; text-align: left; margin-bottom: 15px; }
-.alerta-palabra { background: #34344e; padding: 10px; border-radius: 6px; font-weight: bold; margin-bottom: 10px; border-left: 5px solid #ffaa00; }
-canvas { background: white; border-radius: 8px; cursor: crosshair; margin: 15px 0; display: block; touch-action: none; }
+.info-ronda { font-weight: bold; color: #00ff66; margin-bottom: 5px; font-size: 14px; }
+.alerta-palabra { background: #34344e; padding: 10px; border-radius: 6px; font-weight: bold; margin-bottom: 10px; border-left: 5px solid #ffaa00; font-size: 14px; }
+canvas { background: white; border-radius: 8px; cursor: crosshair; margin: 10px 0; display: block; touch-action: none; }
+.contenedor-votos { display: flex; flex-direction: column; gap: 8px; margin: 20px 0; }
+.btn-votar { background: #3a3a52; color: white; border: 1px solid #555; text-align: left; padding: 12px; }
+.btn-votar:hover { background: #ff5555; color: white; }
+.espera { color: #aaa; font-style: italic; margin-top: 10px; }
+#ganador-titulo { font-size: 28px; color: #00ff66; margin-bottom: 15px; }
 .contenedor-adsense { margin-top: 20px; min-height: 50px; background: rgba(0,0,0,0.2); }
