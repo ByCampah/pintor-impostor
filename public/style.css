@@ -1,4 +1,4 @@
-/* public/style.css - v1.2.0 Completa */
+/* public/style.css - v1.2.1 Completa */
 * { 
     box-sizing: border-box; 
     margin: 0; 
@@ -10,10 +10,31 @@ body {
     background-color: #1a1a26; 
     color: white; 
     display: flex; 
+    flex-direction: column; /* Cambiado a columna para apilar el botón arriba */
     justify-content: center; 
     align-items: center; 
     min-height: 100vh; 
-    padding: 10px; 
+    padding: 20px; 
+}
+
+/* ESTILO DEL BOTÓN SALIR FUERA DEL CONTENEDOR */
+.link-volver { 
+    position: absolute; /* Flota de forma independiente */
+    top: 25px; /* Separación del techo del navegador */
+    color: #8a8fbc; 
+    font-size: 14px; 
+    text-decoration: none; 
+    font-weight: bold; 
+    transition: color 0.2s, transform 0.2s;
+    background: rgba(255, 255, 255, 0.04);
+    padding: 8px 16px;
+    border-radius: 20px;
+    border: 1px solid #32324a;
+}
+.link-volver:hover { 
+    color: #ff5555; /* Cambia a rojo sutil al pasar el mouse indicando salida */
+    background: rgba(255, 255, 255, 0.08);
+    transform: scale(1.02);
 }
 
 .contenedor-juego { 
@@ -24,20 +45,7 @@ body {
     border-radius: 12px; 
     text-align: center; 
     box-shadow: 0 4px 20px rgba(0,0,0,0.4); 
-}
-
-/* ESTILO NUEVO DEL BOTÓN VOLVER */
-.link-volver { 
-    display: inline-block; 
-    color: #8a8fbc; 
-    font-size: 13px; 
-    margin-bottom: 18px; 
-    text-decoration: none; 
-    font-weight: bold; 
-    transition: color 0.2s;
-}
-.link-volver:hover { 
-    color: #ffaa00; 
+    margin-top: 50px; /* Le da espacio para que no choque con el botón de arriba */
 }
 
 h1 { 
