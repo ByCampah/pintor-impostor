@@ -23,7 +23,7 @@ function mezclarArray(array) {
 
 io.on('connection', (socket) => {
 
-    // Crear Sala
+    // 1. Crear Sala
     socket.on('crearSala', (nombre) => {
         let codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
         salas[codigo] = {
@@ -40,7 +40,7 @@ io.on('connection', (socket) => {
         socket.emit('salaCreada', { codigo, jugadores: salas[codigo].jugadores });
     });
 
-    // Unirse a Sala
+    // 2. Unirse a Sala
     socket.on('unirseSala', ({ codigo, nombre }) => {
         codigo = codigo.toUpperCase();
         if (salas[codigo] && !salas[codigo].enJuego) {
@@ -52,7 +52,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Iniciar Partida
+    // 3. Iniciar Partida
     socket.on('iniciarPartida', (codigo) => {
         let sala = salas[codigo];
         if (!sala || sala.jugadores.length < 3) return socket.emit('errorConexion', 'Se necesitan al menos 3 jugadores.');
@@ -84,12 +84,12 @@ io.on('connection', (socket) => {
         });
     });
 
-    // Transmisión del dibujo
+    // 4. Transmisión del dibujo
     socket.on('dibujando', ({ codigo, x, y, xAnterior, yAnterior, color }) => {
         socket.to(codigo).emit('dibujarFronte', { x, y, xAnterior, yAnterior, color });
     });
 
-    // Siguiente Turno
+    // 5. Cambios de turno
     socket.on('siguienteTurno', (codigo) => {
         let sala = salas[codigo];
         if (!sala) return;
@@ -119,7 +119,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Procesar Votos
+    // 6. Procesamiento de Votos con Desempate Limpio
     socket.on('votarJugador', ({ codigo, idVotado }) => {
         let sala = salas[codigo];
         if (!sala) return;
@@ -135,16 +135,14 @@ io.on('connection', (socket) => {
             let maxVotos = Math.max(...vivos.map(j => j.votosRecibidos));
             let empatados = vivos.filter(j => j.votosRecibidos === maxVotos);
 
-            // CASO EMPATE: Mandamos a votar DE VUELTA pero SOLO entre los empatados
+            // Si hay empate en los votos, vuelven a votar pero solo entre los empatados
             if (empatados.length > 1) {
                 sala.votosEmitidos = 0;
-                sala.jugadores.forEach(j => j.votosRecibidos = 0); // Limpiar votos para la revancha
-                
+                sala.jugadores.forEach(j => j.votosRecibidos = 0);
                 io.to(codigo).emit('faseVotacion', { jugadoresVivos: empatados, esDesempate: true });
                 return;
             }
 
-            // SI NO HAY EMPATE: Se elimina al jugador
             let expulsado = empatados[0];
             expulsado.vivo = false;
 
@@ -159,7 +157,6 @@ io.on('connection', (socket) => {
                 io.to(codigo).emit('finPartida', { ganador: "IMPOSTOR", detalle: `El impostor era ${nombreImpostor}. ¡Logró camuflarse!` });
                 sala.enJuego = false;
             } else {
-                // Avanzar a la siguiente ronda de dibujo de forma limpia
                 sala.rondaActual++;
                 sala.ordenTurnos = mezclarArray(sala.jugadores.filter(j => j.vivo).map(j => j.id));
                 sala.indiceTurnoActual = 0;
@@ -177,11 +174,18 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Desconexión (Aquí estaba el error de la llave)
     socket.on('disconnect', () => {
         for (let codigo in salas) {
             salas[codigo].jugadores = salas[codigo].jugadores.filter(j => j.id !== socket.id);
-            if (salas[codigo].jugadores.length === 0) delete salas[codigo];
-            else io.to(codigo).emit('actualizarJugadores', salas[codigo].jugadores);
+            if (salas[codigo].jugadores.length === 0) {
+                delete salas[codigo];
+            } else {
+                io.to(codigo).emit('actualizarJugadores', salas[codigo].jugadores);
+            }
         }
     });
 });
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log(`Servidor de Pintura Avanzado en puerto ${PORT}`));
