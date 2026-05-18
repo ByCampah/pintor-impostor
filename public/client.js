@@ -3,7 +3,7 @@ const socket = io(window.location.hostname === 'localhost' ? 'http://localhost:3
 
 let miCodigo = "";
 let miTurno = false;
-let colorPincel = "#" + Math.floor(Math.random() * 16777215).toString(16);
+let colorPincel = "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
 
 const canvas = document.getElementById('pizarra');
 const ctx = canvas.getContext('2d');
