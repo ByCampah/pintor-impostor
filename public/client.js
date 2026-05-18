@@ -10,7 +10,6 @@ const ctx = canvas.getContext('2d');
 let dibujando = false;
 let xAnterior = 0, yAnterior = 0;
 
-// Captura de trazos
 canvas.addEventListener('mousedown', (e) => { if(!miTurno) return; dibujando = true; [xAnterior, yAnterior] = obtenerCoordenadas(e); });
 canvas.addEventListener('mousemove', dibujar);
 window.addEventListener('mouseup', () => dibujando = false);
@@ -38,7 +37,6 @@ function dibujarLinea(x, y, xAn, yAn, color) {
 
 socket.on('dibujarFronte', ({ x, y, xAnterior, yAnterior, color }) => { dibujarLinea(x, y, xAnterior, yAnterior, color); });
 
-// --- Manejo de Pantallas de Flujo de Rondas ---
 const pantallas = {
     inicio: document.getElementById('pantalla-inicio'),
     lobby: document.getElementById('pantalla-lobby'),
@@ -48,13 +46,10 @@ const pantallas = {
 };
 
 function mostrarSola(pantallaClave) {
-    Object.keys(pantallas).forEach(key => {
-        pantallas[key].classList.remove('active');
-    });
+    Object.keys(pantallas).forEach(key => pantallas[key].classList.remove('active'));
     pantallas[pantallaClave].classList.add('active');
 }
 
-// Botones menú
 document.getElementById('btn-crear').addEventListener('click', () => {
     const n = document.getElementById('input-nombre').value.trim();
     if(n) socket.emit('crearSala', n);
@@ -70,7 +65,6 @@ document.getElementById('btn-comenzar').addEventListener('click', () => { socket
 document.getElementById('btn-terminar-trazo').addEventListener('click', () => { socket.emit('siguienteTurno', miCodigo); });
 document.getElementById('btn-reiniciar').addEventListener('click', () => { socket.emit('iniciarPartida', miCodigo); });
 
-// Respuestas básicas
 socket.on('salaCreada', ({ codigo, jugadores }) => {
     miCodigo = codigo;
     document.getElementById('codigo-display').innerText = codigo;
@@ -104,9 +98,9 @@ socket.on('tuRol', ({ palabra, esImpostor }) => {
     }
 });
 
-// FLUJO MULTI-RONDA DE DIBUJO Y VOTACIÓN
 socket.on('partidaIniciada', ({ turnoDe, nombreTurno, ronda }) => {
-    ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiar pizarra para partida nueva
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById('notificacion-ronda').style.display = 'none'; // Limpiar banner anterior
     document.getElementById('ronda-num').innerText = ronda;
     mostrarSola('juego');
     manejarTurno(turnoDe, nombreTurno);
@@ -120,36 +114,56 @@ function manejarTurno(turnoDe, nombreTurno) {
     document.getElementById('btn-terminar-trazo').style.display = miTurno ? 'block' : 'none';
 }
 
-// Fase de votación automática al terminar la ronda
-socket.on('faseVotacion', (jugadoresVivos) => {
+// Fase de Votación Dinámica (Con filtro de autovoto y textos de desempate)
+socket.on('faseVotacion', ({ jugadoresVivos, esDesempate }) => {
     miTurno = false;
     document.getElementById('alerta-voto-espera').style.display = 'none';
+    
+    const titulo = document.getElementById('titulo-votacion');
+    const sub = document.getElementById('sub-votacion');
     const contenedor = document.getElementById('lista-votacion');
     contenedor.innerHTML = "";
 
+    if (esDesempate) {
+        titulo.innerText = "⚡ RONDA DE DESEMPATE";
+        titulo.style.color = "#ffaa00";
+        sub.innerText = "Hubo un empate exacto. Elijan SOLO entre los más votados para definir quién se va:";
+    } else {
+        titulo.innerText = "🕵️‍♂️ ¿Quién es el Impostor?";
+        titulo.style.color = "white";
+        sub.innerText = "Discutan y elijan a quién quieren echar de la sala:";
+    }
+
     jugadoresVivos.forEach(j => {
-        const btn = document.createElement('button');
-        btn.className = "btn-votar";
-        btn.innerText = `👤 Votar a ${j.nombre}`;
-        btn.addEventListener('click', () => {
-            socket.emit('votarJugador', { codigo: miCodigo, idVotado: j.id });
-            contenedor.innerHTML = ""; // Ocultar botones tras votar
-            document.getElementById('alerta-voto-espera').style.display = 'block';
-        });
-        contenedor.appendChild(btn);
+        // FILTRO CLAVE: Si el ID es el mío, no muestro mi propio botón para no auto-votarme
+        if (j.id !== socket.id) {
+            const btn = document.createElement('button');
+            btn.className = "btn-votar";
+            btn.innerText = `👤 Votar a ${j.nombre}`;
+            btn.addEventListener('click', () => {
+                socket.emit('votarJugador', { codigo: miCodigo, idVotado: j.id });
+                contenedor.innerHTML = ""; 
+                document.getElementById('alerta-voto-espera').style.display = 'block';
+            });
+            contenedor.appendChild(btn);
+        }
     });
     mostrarSola('votacion');
 });
 
-// Continúa el juego tras una expulsión fallida
-socket.on('nuevaRondaDibujo', ({ ronda, turnoDe, nombreTurno, txtAlerta }) => {
+// Volver al juego usando notificaciones embebidas
+socket.on('nuevaRondaDibujo', ({ ronda, turnoDe, nombreTurno, mensajeEstado }) => {
     document.getElementById('ronda-num').innerText = ronda;
-    alert(txtAlerta);
+    
+    // Inyectar el mensaje directo en la pantalla de juego de todos
+    const banner = document.getElementById('notificacion-notificacion' || 'notificacion-ronda');
+    banner.innerText = mensajeEstado;
+    banner.style.display = 'block';
+    
     mostrarSola('juego');
     manejarTurno(turnoDe, nombreTurno);
 });
 
-// Fin definitivo del partido
 socket.on('finPartida', ({ ganador, detalle }) => {
     document.getElementById('ganador-titulo').innerText = `¡GANAN LOS ${ganador}!`;
     document.getElementById('ganador-titulo').style.color = (ganador === "IMPOSTOR") ? "#ff5555" : "#00ff66";

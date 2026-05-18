@@ -1,22 +1,14 @@
-* { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-body { background-color: #1a1a26; color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
-.contenedor-juego { background: #242434; width: 100%; max-width: 400px; padding: 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-h1 { color: #ffaa00; font-size: 22px; margin-bottom: 15px; }
-.pantalla { display: none; }
-.pantalla.active { display: block; }
-input { width: 100%; padding: 10px; margin-bottom: 10px; border-radius: 6px; border: 1px solid #444; background: #1a1a26; color: white; text-align: center; font-size: 16px; }
-button { width: 100%; padding: 12px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 8px; }
-.btn-principal { background: #ffaa00; color: #1a1a26; }
-.btn-secundario { background: #444; color: white; }
-.btn-jugar { background: #00ff66; color: #1a1a26; }
-.separador { margin: 10px 0; color: #888; }
-#lista-jugadores { background: #1a1a26; padding: 10px; border-radius: 6px; text-align: left; margin-bottom: 15px; }
-.info-ronda { font-weight: bold; color: #00ff66; margin-bottom: 5px; font-size: 14px; }
-.alerta-palabra { background: #34344e; padding: 10px; border-radius: 6px; font-weight: bold; margin-bottom: 10px; border-left: 5px solid #ffaa00; font-size: 14px; }
-canvas { background: white; border-radius: 8px; cursor: crosshair; margin: 10px 0; display: block; touch-action: none; }
-.contenedor-votos { display: flex; flex-direction: column; gap: 8px; margin: 20px 0; }
-.btn-votar { background: #3a3a52; color: white; border: 1px solid #555; text-align: left; padding: 12px; }
-.btn-votar:hover { background: #ff5555; color: white; }
-.espera { color: #aaa; font-style: italic; margin-top: 10px; }
-#ganador-titulo { font-size: 28px; color: #00ff66; margin-bottom: 15px; }
-.contenedor-adsense { margin-top: 20px; min-height: 50px; background: rgba(0,0,0,0.2); }
+.banner-notificacion {
+    background-color: #ffaa00;
+    color: #1a1a26;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: bold;
+    margin-bottom: 12px;
+    font-size: 14px;
+    animation: alert-slide 0.3s ease-out;
+}
+@keyframes alert-slide {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}

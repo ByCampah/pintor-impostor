@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>El Pintor Impostor - Rondas Pro</title>
+    <title>El Pintor Impostor - Interfaz Limpia</title>
     <link rel="stylesheet" href="style.css">
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3597205269278004" crossorigin="anonymous"></script>
 </head>
@@ -27,7 +27,8 @@
         </div>
 
         <div id="pantalla-juego" class="pantalla">
-            <div class="info-ronda">Ronda: <span id="ronda-num">1</span></div>
+            <div id="notificacion-ronda" class="banner-notificacion" style="display:none;"></div>
+            <div class="info-ronda">Ronda de Dibujo: <span id="ronda-num">1</span></div>
             <div id="info-palabra" class="alerta-palabra">Cargando...</div>
             <h4 id="indicador-turno">Turno de: ...</h4>
             
@@ -37,8 +38,8 @@
         </div>
 
         <div id="pantalla-votacion" class="pantalla">
-            <h2>🕵️‍♂️ ¿Quién es el Impostor?</h2>
-            <p class="sub">Discutan y elijan a quién quieren echar de la sala:</p>
+            <h2 id="titulo-votacion">🕵️‍♂️ ¿Quién es el Impostor?</h2>
+            <p id="sub-votacion" class="sub">Discutan y elijan a quién quieren echar de la sala:</p>
             <div id="lista-votacion" class="contenedor-votos"></div>
             <p id="alerta-voto-espera" class="espera" style="display:none;">Esperando que voten los demás...</p>
         </div>

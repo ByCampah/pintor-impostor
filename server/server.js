@@ -23,7 +23,7 @@ function mezclarArray(array) {
 
 io.on('connection', (socket) => {
 
-    // 1. Crear Sala
+    // Crear Sala
     socket.on('crearSala', (nombre) => {
         let codigo = Math.random().toString(36).substring(2, 6).toUpperCase();
         salas[codigo] = {
@@ -34,14 +34,13 @@ io.on('connection', (socket) => {
             ordenTurnos: [],
             indiceTurnoActual: 0,
             votosEmitidos: 0,
-            rondaActual: 1,
-            enDesempate: false
+            rondaActual: 1
         };
         socket.join(codigo);
         socket.emit('salaCreada', { codigo, jugadores: salas[codigo].jugadores });
     });
 
-    // 2. Unirse a Sala
+    // Unirse a Sala
     socket.on('unirseSala', ({ codigo, nombre }) => {
         codigo = codigo.toUpperCase();
         if (salas[codigo] && !salas[codigo].enJuego) {
@@ -53,29 +52,24 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 3. Iniciar Partida
+    // Iniciar Partida
     socket.on('iniciarPartida', (codigo) => {
         let sala = salas[codigo];
         if (!sala || sala.jugadores.length < 3) return socket.emit('errorConexion', 'Se necesitan al menos 3 jugadores.');
 
         sala.enJuego = true;
         sala.rondaActual = 1;
-        sala.enDesempate = false;
         sala.palabra = PALABRAS[Math.floor(Math.random() * PALABRAS.length)];
         
-        // Resetear por completo a todos los jugadores
         sala.jugadores.forEach(j => { j.vivo = true; j.esImpostor = false; j.votosRecibidos = 0; });
         sala.votosEmitidos = 0;
 
-        // Elegir Impostor al azar
         let indiceImpostor = Math.floor(Math.random() * sala.jugadores.length);
         sala.jugadores[indiceImpostor].esImpostor = true;
 
-        // Armar turnos mezclados asegurando que incluyan a todos los IDs actuales
         sala.ordenTurnos = mezclarArray(sala.jugadores.map(j => j.id));
         sala.indiceTurnoActual = 0;
 
-        // Mandar roles
         sala.jugadores.forEach((jugador) => {
             io.to(jugador.id).emit('tuRol', { palabra: jugador.esImpostor ? "???" : sala.palabra, esImpostor: jugador.esImpostor });
         });
@@ -90,19 +84,18 @@ io.on('connection', (socket) => {
         });
     });
 
-    // 4. Transmisión del dibujo
+    // Transmisión del dibujo
     socket.on('dibujando', ({ codigo, x, y, xAnterior, yAnterior, color }) => {
         socket.to(codigo).emit('dibujarFronte', { x, y, xAnterior, yAnterior, color });
     });
 
-    // 5. Cambios de turno
+    // Siguiente Turno
     socket.on('siguienteTurno', (codigo) => {
         let sala = salas[codigo];
         if (!sala) return;
 
         sala.indiceTurnoActual++;
 
-        // Buscar el próximo jugador que califique para dibujar y esté VIVO
         let encontrado = false;
         while (sala.indiceTurnoActual < sala.ordenTurnos.length) {
             let siguienteId = sala.ordenTurnos[sala.indiceTurnoActual];
@@ -114,12 +107,11 @@ io.on('connection', (socket) => {
             sala.indiceTurnoActual++;
         }
 
-        // Si ya no quedan más turnos disponibles en esta ronda, pasamos a votar
         if (!encontrado) {
             sala.votosEmitidos = 0;
             sala.jugadores.forEach(j => j.votosRecibidos = 0);
             let vivos = sala.jugadores.filter(j => j.vivo);
-            io.to(codigo).emit('faseVotacion', vivos);
+            io.to(codigo).emit('faseVotacion', { jugadoresVivos: vivos, esDesempate: false });
         } else {
             let idTurno = sala.ordenTurnos[sala.indiceTurnoActual];
             let nombreTurno = sala.jugadores.find(j => j.id === idTurno).nombre;
@@ -127,7 +119,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 6. Procesamiento de Votos con Regla de Desempate
+    // Procesar Votos
     socket.on('votarJugador', ({ codigo, idVotado }) => {
         let sala = salas[codigo];
         if (!sala) return;
@@ -140,33 +132,19 @@ io.on('connection', (socket) => {
 
         if (sala.votosEmitidos >= totalVivos) {
             let vivos = sala.jugadores.filter(j => j.vivo);
-            
-            // Buscar la cantidad máxima de votos que alguien recibió
             let maxVotos = Math.max(...vivos.map(j => j.votosRecibidos));
-            // Filtrar todos los jugadores que tengan esa cantidad máxima de votos
             let empatados = vivos.filter(j => j.votosRecibidos === maxVotos);
 
-            // ¡HAY EMPATE! (Y hay más de un jugador con el máximo de votos)
+            // CASO EMPATE: Mandamos a votar DE VUELTA pero SOLO entre los empatados
             if (empatados.length > 1) {
-                sala.enDesempate = true;
                 sala.votosEmitidos = 0;
-                // La nueva ronda de dibujo solo incluirá a los que empataron
-                sala.ordenTurnos = empatados.map(j => j.id);
-                sala.indiceTurnoActual = 0;
-
-                let idTurno = sala.ordenTurnos[0];
-                let nombreTurno = sala.jugadores.find(j => j.id === idTurno).nombre;
-
-                io.to(codigo).emit('nuevaRondaDibujo', {
-                    ronda: sala.rondaActual,
-                    turnoDe: idTurno,
-                    nombreTurno: nombreTurno,
-                    txtAlerta: `¡Hubo un empate en los votos! Ronda de desempate entre: ${empatados.map(e => e.nombre).join(' y ')}. ¡A dibujar de nuevo!`
-                });
+                sala.jugadores.forEach(j => j.votosRecibidos = 0); // Limpiar votos para la revancha
+                
+                io.to(codigo).emit('faseVotacion', { jugadoresVivos: empatados, esDesempate: true });
                 return;
             }
 
-            // Si NO hay empate, procedemos a expulsar al único más votado
+            // SI NO HAY EMPATE: Se elimina al jugador
             let expulsado = empatados[0];
             expulsado.vivo = false;
 
@@ -181,9 +159,8 @@ io.on('connection', (socket) => {
                 io.to(codigo).emit('finPartida', { ganador: "IMPOSTOR", detalle: `El impostor era ${nombreImpostor}. ¡Logró camuflarse!` });
                 sala.enJuego = false;
             } else {
-                // Siguiente ronda normal si sobrevive el impostor
+                // Avanzar a la siguiente ronda de dibujo de forma limpia
                 sala.rondaActual++;
-                sala.enDesempate = false;
                 sala.ordenTurnos = mezclarArray(sala.jugadores.filter(j => j.vivo).map(j => j.id));
                 sala.indiceTurnoActual = 0;
                 
@@ -194,7 +171,7 @@ io.on('connection', (socket) => {
                     ronda: sala.rondaActual,
                     turnoDe: idTurno,
                     nombreTurno: nombreTurno,
-                    txtAlerta: `¡Expulsaron a ${expulsado.nombre}! No era el impostor. Empieza la ronda ${sala.rondaActual}.`
+                    mensajeEstado: `¡Expulsaron a ${expulsado.nombre}! No era el impostor.`
                 });
             }
         }
