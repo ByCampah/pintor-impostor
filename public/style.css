@@ -1,4 +1,4 @@
-/* public/style.css - Versión v1.1.0 Completa */
+/* public/style.css - v1.2.0 Completa */
 * { 
     box-sizing: border-box; 
     margin: 0; 
@@ -24,6 +24,20 @@ body {
     border-radius: 12px; 
     text-align: center; 
     box-shadow: 0 4px 20px rgba(0,0,0,0.4); 
+}
+
+/* ESTILO NUEVO DEL BOTÓN VOLVER */
+.link-volver { 
+    display: inline-block; 
+    color: #8a8fbc; 
+    font-size: 13px; 
+    margin-bottom: 18px; 
+    text-decoration: none; 
+    font-weight: bold; 
+    transition: color 0.2s;
+}
+.link-volver:hover { 
+    color: #ffaa00; 
 }
 
 h1 { 
