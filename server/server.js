@@ -119,10 +119,15 @@ io.on('connection', (socket) => {
         }
     });
 
-    // 6. Procesamiento de Votos con Desempate Limpio
+    // 6. Procesamiento de Votos Seguro (Los muertos NO votan)
     socket.on('votarJugador', ({ codigo, idVotado }) => {
         let sala = salas[codigo];
         if (!sala) return;
+
+        // FILTRO DE SEGURIDAD NUEVO: Buscamos al jugador que emite el voto
+        let votante = sala.jugadores.find(j => j.id === socket.id);
+        // Si el votante está muerto (vivo === false), ignoramos el evento por completo
+        if (!votante || !votante.vivo) return;
 
         let jugadorVotado = sala.jugadores.find(j => j.id === idVotado);
         if (jugadorVotado) jugadorVotado.votosRecibidos++;
@@ -130,12 +135,12 @@ io.on('connection', (socket) => {
         sala.votosEmitidos++;
         let totalVivos = sala.jugadores.filter(j => j.vivo).length;
 
+        // Esperamos solo la cantidad de votos equivalente a los jugadores VIVOS
         if (sala.votosEmitidos >= totalVivos) {
             let vivos = sala.jugadores.filter(j => j.vivo);
             let maxVotos = Math.max(...vivos.map(j => j.votosRecibidos));
             let empatados = vivos.filter(j => j.votosRecibidos === maxVotos);
 
-            // Si hay empate en los votos, vuelven a votar pero solo entre los empatados
             if (empatados.length > 1) {
                 sala.votosEmitidos = 0;
                 sala.jugadores.forEach(j => j.votosRecibidos = 0);
@@ -174,7 +179,7 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Desconexión (Aquí estaba el error de la llave)
+    // Desconexión
     socket.on('disconnect', () => {
         for (let codigo in salas) {
             salas[codigo].jugadores = salas[codigo].jugadores.filter(j => j.id !== socket.id);
